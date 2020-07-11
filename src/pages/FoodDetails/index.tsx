@@ -73,26 +73,57 @@ const FoodDetails: React.FC = () => {
 
   useEffect(() => {
     async function loadFood(): Promise<void> {
-      // Load a specific food with extras based on routeParams id
+      const { data: apiFood } = await api.get<Food>(`/foods/${routeParams.id}`);
+
+      setFood({
+        ...apiFood,
+        formattedPrice: formatValue(apiFood.price),
+      });
+      setExtras(apiFood.extras.map(extrs => ({ ...extrs, quantity: 0 })));
     }
 
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    setExtras(prevExtras => {
+      const newExtras = [...prevExtras];
+
+      const extraIndex = prevExtras.findIndex(extr => extr.id === id);
+
+      newExtras[extraIndex].quantity += 1;
+
+      return newExtras;
+    });
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    setExtras(prevExtras => {
+      const extraIndex = prevExtras.findIndex(extr => extr.id === id);
+
+      if (prevExtras[extraIndex].quantity < 1) {
+        return prevExtras;
+      }
+
+      const newExtra = [...prevExtras];
+      newExtra[extraIndex].quantity -= 1;
+
+      return newExtra;
+    });
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(prevQuantity => prevQuantity + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    setFoodQuantity(prevQuantity => {
+      if (prevQuantity < 2) {
+        return prevQuantity;
+      }
+
+      return prevQuantity - 1;
+    });
   }
 
   const toggleFavorite = useCallback(() => {
@@ -100,7 +131,12 @@ const FoodDetails: React.FC = () => {
   }, [isFavorite, food]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const extraPrices = extras.reduce(
+      (totalPrice, extr) => totalPrice + extr.value * extr.quantity,
+      0,
+    );
+
+    return formatValue(foodQuantity * (food.price + extraPrices));
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
